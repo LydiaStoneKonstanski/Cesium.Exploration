@@ -48,7 +48,18 @@
     const authentication = arcgisRest.ApiKeyManager.fromKey("AAPK2783f16d57c84b76b9d4a4a6e91c2e7bx1JoRgkjG9wcDuYVbycyoQ-shvVHmFt2mHjmb8xCiuvmIt807A-BhuLGkA4-MDh7");
     const cartesian = Cesium.Cartesian3.fromDegrees(-122.39429, 37.78988);
     getServiceArea(Cesium.Cartographic.fromCartesian(cartesian));
+    const marker = viewer.entities.add({
+        name: "start",
+        billboard: {
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            image: "./maki/icons/marker.svg",
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scale: 0.5,
+        },
+    });
 
+    marker.position = cartesian;
 
 
     async function getServiceArea(cartographic) {
@@ -86,7 +97,58 @@
         if (!Cesium.defined(dataSource)) {
             return;
         }
+        const entities = dataSource.entities.values;
+
+        for (let i = 0; i < entities.length; i++) {
+            const feature = entities[i];
+            feature.polygon.outline = false;
+
+            if (feature.properties.FromBreak == 0) {
+                feature.polygon.material = Cesium.Color.fromHsl(
+                    0.5833,
+                    0.8,
+                    0.9,
+                    0.5
+                );
+            } else if (feature.properties.FromBreak == 5) {
+                feature.polygon.material = Cesium.Color.fromHsl(
+                    0.5833,
+                    0.9,
+                    0.7,
+                    0.5
+                );
+            } else {
+                feature.polygon.material = Cesium.Color.fromHsl(
+                    0.5833,
+                    1.0,
+                    0.4,
+                    0.5
+                );
+            }
+        }
+        const scene = viewer.scene;
+        scene.invertClassification = true;
+        scene.invertClassificationColor = new Cesium.Color(0.4, 0.4, 0.4, 1.0);
+
     }
+    viewer.screenSpaceEventHandler.setInputAction((movement) => {
+        viewer.dataSources.removeAll();
+        viewer.scene.invertClassification = false;
+        marker.show = false;
+
+        const pickedPosition = viewer.scene.pickPosition(movement.position);
+
+        if (!Cesium.defined(pickedPosition)) {
+            return;
+        }
+
+        marker.position = pickedPosition;
+        marker.show = true;
+        viewer.scene.invertClassification = true;
+
+        const cartographic = Cesium.Cartographic.fromCartesian(pickedPosition);
+        getServiceArea(cartographic);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
 
 </script>
